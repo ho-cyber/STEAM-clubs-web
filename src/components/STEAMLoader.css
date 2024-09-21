@@ -1,0 +1,113 @@
+.steam-loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+    position: relative;
+  }
+  
+  .gear-container,
+  .star-container {
+    position: absolute;
+  }
+  
+  .gear {
+    border: 5px solid #333;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    position: absolute;
+    background: #f0f0f0;
+    transform: rotate(45deg);
+  }
+  
+  .gear1 {
+    border-color: #1f77b4;
+    animation: spin 2s linear infinite;
+  }
+  
+  .gear2 {
+    border-color: #ff7f0e;
+    animation: spin 2s linear infinite reverse;
+    top: 60px;
+  }
+  
+  .gear3 {
+    border-color: #2ca02c;
+    animation: spin 2s linear infinite;
+    top: 120px;
+  }
+  
+  @keyframes spin {
+    from {
+      transform: rotate(45deg);
+    }
+    to {
+      transform: rotate(405deg);
+    }
+  }
+  
+  .star {
+    width: 0;
+    height: 0;
+    border-left:  20px solid transparent;
+    border-right: 20px solid transparent;
+    border-bottom: 40px solid #ffcc00;
+    position: absolute;
+    top: 20px;
+  }
+  
+  .star:before {
+    content: "";
+    position: absolute;
+    top: -25px;
+    left: -20px;
+    width: 0;
+    height: 0;
+    border-left: 20px solid transparent;
+    border-right: 20px solid transparent;
+    border-bottom: 40px solid #ffcc00;
+    transform: rotate(-35deg);
+  }
+  
+  .star:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -20px;
+    width: 0;
+    height: 0;
+    border-left: 20px solid transparent;
+    border-right: 20px solid transparent;
+    border-bottom: 40px solid #ffcc00;
+    transform: rotate(70deg);
+  }
+  
+  .star1 {
+    top: 50px;
+    left: 20px;
+    animation: twinkle 1.5s infinite alternate;
+  }
+  
+  .star2 {
+    top: 100px;
+    left: 100px;
+    animation: twinkle 2s infinite alternate;
+  }
+  
+  .star3 {
+    top: 150px;
+    left: 180px;
+    animation: twinkle 1.8s infinite alternate;
+  }
+  
+  @keyframes twinkle {
+    from {
+      opacity: 0.8;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  

@@ -1,6 +1,6 @@
 import Home from "./Home";
 import About from './About'
-import Projects from "./Projects";
+import Projects from "./Science/Science_Main";
 import Contact from "./Contact";
 
 export {

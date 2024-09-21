@@ -1,170 +1,226 @@
+import React, { useState } from "react";
 import emailjs from "@emailjs/browser";
-import { Canvas } from "@react-three/fiber";
-import { Suspense, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import useAlert from "../hooks/useAlert"; // Assuming you have an alert system
+import { Alert } from "../components";
+import { getFirestore, collection, addDoc, getDocs } from "firebase/firestore"; // Firestore functions
 
-import { Fox } from "../models";
-import useAlert from "../hooks/useAlert";
-import { Alert, Loader } from "../components";
+const db = getFirestore();
 
 const Contact = () => {
-  const formRef = useRef();
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
-  const { alert, showAlert, hideAlert } = useAlert();
+  const [loginState, setLoginState] = useState({
+    email: "",
+    password: "",
+    otp: "",
+    username: "", // Add username field
+  });
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [isUsernameSet, setIsUsernameSet] = useState(false); // Track if username is set
+  const [generatedOtp, setGeneratedOtp] = useState("");
+  const { alert, showAlert } = useAlert();
   const [loading, setLoading] = useState(false);
-  const [currentAnimation, setCurrentAnimation] = useState("idle");
+  const navigate = useNavigate(); // For redirection after login
 
-  const handleChange = ({ target: { name, value } }) => {
-    setForm({ ...form, [name]: value });
+  const fixedEmail = "Dhruvdukle@yahoo.com";  // Fixed email for OTP
+  const fixedPassword = "Dragonfire146";  // Fixed password
+
+  // Function to generate OTP
+  const generateOtp = () => {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit random OTP
+    return otp;
   };
 
-  const handleFocus = () => setCurrentAnimation("walk");
-  const handleBlur = () => setCurrentAnimation("idle");
+  // Function to handle input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setLoginState({ ...loginState, [name]: value });
+  };
 
-  const handleSubmit = (e) => {
+  // Function to handle login form submission
+  const handleLoginSubmit = (e) => {
     e.preventDefault();
-    setLoading(true);
-    setCurrentAnimation("hit");
+    if (loginState.email === fixedEmail && loginState.password === fixedPassword) {
+      const otp = generateOtp();
+      setGeneratedOtp(otp); // Store generated OTP in state
+      sendOtpEmail(otp); // Send OTP to the user's email
+      setIsOtpSent(true); // Switch to OTP input form
+    } else {
+      showAlert({
+        show: true,
+        text: "Invalid email or password!",
+        type: "danger",
+      });
+    }
+  };
 
+  // Function to handle OTP form submission
+  const handleOtpSubmit = (e) => {
+    e.preventDefault();
+    if (loginState.otp === generatedOtp) {
+      setIsUsernameSet(true); // Switch to username input form
+    } else {
+      showAlert({
+        show: true,
+        text: "Invalid OTP!",
+        type: "danger",
+      });
+    }
+  };
+
+  // Function to handle username form submission
+  const handleUsernameSubmit = async (e) => {
+    e.preventDefault();
+    if (loginState.username) {
+      const usernamesCollection = collection(db, "usernames");
+      const snapshot = await getDocs(usernamesCollection);
+      const existingUsernames = snapshot.docs.map(doc => doc.data().username);
+
+      if (!existingUsernames.includes(loginState.username)) {
+        // Store username if it doesn't exist
+        await addDoc(usernamesCollection, { 
+          username: loginState.username, 
+          email: loginState.email,
+          admin: false // Add the admin field and set to false by default
+        });
+
+        showAlert({
+          show: true,
+          text: "Logged in successfully!",
+          type: "success",
+        });
+      } else {
+        // Log in if the username exists
+        showAlert({
+          show: true,
+          text: "Logged in successfully!",
+          type: "success",
+        });
+      }
+
+      // Store login status and username in localStorage
+      localStorage.setItem("isLoggedIn", true);
+      localStorage.setItem("loggedInUser", loginState.email);
+      localStorage.setItem("username", loginState.username); // Store username
+
+      // Redirect to the dashboard after successful login
+      navigate("/dashboard");
+
+    } else {
+      showAlert({
+        show: true,
+        text: "Please enter a username!",
+        type: "danger",
+      });
+    }
+  };
+
+  // Function to send OTP email using EmailJS
+  const sendOtpEmail = (otp) => {
+    setLoading(true);
     emailjs
       .send(
         import.meta.env.VITE_APP_EMAILJS_SERVICE_ID,
         import.meta.env.VITE_APP_EMAILJS_TEMPLATE_ID,
         {
-          from_name: form.name,
-          to_name: "Dhruv Pai Dukle",
-          from_email: form.email,
-          to_email: "paidukledhruv@gmail.com",
-          message: form.message,
+          to_email: loginState.email,
+          message: otp, // Send OTP in the email
         },
         import.meta.env.VITE_APP_EMAILJS_PUBLIC_KEY
       )
-      .then(
-        () => {
-          setLoading(false);
-          showAlert({
-            show: true,
-            text: "Thank you for your message 😃",
-            type: "success",
-          });
-
-          setTimeout(() => {
-            hideAlert(false);
-            setCurrentAnimation("idle");
-            setForm({
-              name: "",
-              email: "",
-              message: "",
-            });
-          }, [3000]);
-        },
-        (error) => {
-          setLoading(false);
-          console.error(error);
-          setCurrentAnimation("idle");
-
-          showAlert({
-            show: true,
-            text: "I didn't receive your message 😢",
-            type: "danger",
-          });
-        }
-      );
+      .then(() => {
+        setLoading(false);
+        showAlert({
+          show: true,
+          text: "OTP has been sent to your email.",
+          type: "success",
+        });
+      })
+      .catch((error) => {
+        setLoading(false);
+        console.error(error);
+        showAlert({
+          show: true,
+          text: "Failed to send OTP. Please try again.",
+          type: "danger",
+        });
+      });
   };
 
   return (
-    <section className='relative flex lg:flex-row flex-col max-container'>
+    <section className="relative flex lg:flex-row flex-col max-container">
       {alert.show && <Alert {...alert} />}
 
-      <div className='flex-1 min-w-[50%] flex flex-col'>
-        <h1 className='head-text'>Get in Touch</h1>
-
-        <form
-          ref={formRef}
-          onSubmit={handleSubmit}
-          className='w-full flex flex-col gap-7 mt-14'
-        >
-          <label className='text-black-500 font-semibold'>
-            Name
-            <input
-              type='text'
-              name='name'
-              className='input'
-              placeholder='John'
-              required
-              value={form.name}
-              onChange={handleChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-            />
-          </label>
-          <label className='text-black-500 font-semibold'>
-            Email
-            <input
-              type='email'
-              name='email'
-              className='input'
-              placeholder='John@gmail.com'
-              required
-              value={form.email}
-              onChange={handleChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-            />
-          </label>
-          <label className='text-black-500 font-semibold'>
-            Your Message
-            <textarea
-              name='message'
-              rows='4'
-              className='textarea'
-              placeholder='Write your thoughts here...'
-              value={form.message}
-              onChange={handleChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-            />
-          </label>
-
-          <button
-            type='submit'
-            disabled={loading}
-            className='btn'
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-          >
-            {loading ? "Sending..." : "Submit"}
-          </button>
-        </form>
-      </div>
-
-      <div className='lg:w-1/2 w-full lg:h-auto md:h-[550px] h-[350px]'>
-        <Canvas
-          camera={{
-            position: [0, 0, 5],
-            fov: 75,
-            near: 0.1,
-            far: 1000,
-          }}
-        >
-          <directionalLight position={[0, 0, 1]} intensity={2.5} />
-          <ambientLight intensity={1} />
-          <pointLight position={[5, 10, 0]} intensity={2} />
-          <spotLight
-            position={[10, 10, 10]}
-            angle={0.15}
-            penumbra={1}
-            intensity={2}
-          />
-
-          <Suspense fallback={<Loader />}>
-            <Fox
-              currentAnimation={currentAnimation}
-              position={[0.5, 0.35, 0]}
-              rotation={[12.629, -0.6, 0]}
-              scale={[0.5, 0.5, 0.5]}
-            />
-          </Suspense>
-        </Canvas>
+      <div className="flex-1 min-w-[50%] flex flex-col">
+        {!isOtpSent ? (
+          // Login form
+          <form onSubmit={handleLoginSubmit} className="w-full flex flex-col gap-7 mt-14">
+            <label className="text-black-500 font-semibold">
+              Email
+              <input
+                type="email"
+                name="email"
+                className="input"
+                placeholder="Enter your email"
+                required
+                value={loginState.email}
+                onChange={handleChange}
+              />
+            </label>
+            <label className="text-black-500 font-semibold">
+              Password
+              <input
+                type="password"
+                name="password"
+                className="input"
+                placeholder="Enter your password"
+                required
+                value={loginState.password}
+                onChange={handleChange}
+              />
+            </label>
+            <button type="submit" className="btn">
+              {loading ? "Sending OTP..." : "Login"}
+            </button>
+          </form>
+        ) : isUsernameSet ? (
+          // Username input form
+          <form onSubmit={handleUsernameSubmit} className="w-full flex flex-col gap-7 mt-14">
+            <label className="text-black-500 font-semibold">
+              Username
+              <input
+                type="text"
+                name="username"
+                className="input"
+                placeholder="Enter your username"
+                required
+                value={loginState.username}
+                onChange={handleChange}
+              />
+            </label>
+            <button type="submit" className="btn">
+              Set Username
+            </button>
+          </form>
+        ) : (
+          // OTP form
+          <form onSubmit={handleOtpSubmit} className="w-full flex flex-col gap-7 mt-14">
+            <label className="text-black-500 font-semibold">
+              OTP
+              <input
+                type="text"
+                name="otp"
+                className="input"
+                placeholder="Enter the OTP"
+                required
+                value={loginState.otp}
+                onChange={handleChange}
+              />
+            </label>
+            <button type="submit" className="btn">
+              {loading ? "Verifying OTP..." : "Verify OTP"}
+            </button>
+          </form>
+        )}
       </div>
     </section>
   );

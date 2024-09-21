@@ -1,12 +1,20 @@
-import { Html } from "@react-three/drei";
+import React from 'react';
+import './STEAMLoader.css'; // Import the CSS file
 
 const Loader = () => {
   return (
-    <Html>
-      <div className='flex justify-center items-center'>
-        <div className='w-20 h-20 border-2 border-opacity-20 border-blue-500 border-t-blue-500 rounded-full animate-spin'></div>
+    <div className="steam-loader">
+      <div className="gear-container">
+        <div className="gear gear1"></div>
+        <div className="gear gear2"></div>
+        <div className="gear gear3"></div>
       </div>
-    </Html>
+      <div className="star-container">
+        <div className="star star1"></div>
+        <div className="star star2"></div>
+        <div className="star star3"></div>
+      </div>
+    </div>
   );
 };
 
